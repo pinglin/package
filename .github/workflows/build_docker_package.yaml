@@ -36,11 +36,16 @@ jobs:
       run: |
         set -eux
         cd docker
-        docker build -t package-${{ matrix.platform }} -f Dockerfile.package-${{ matrix.platform }} .
+        docker build --build-arg ARCH=x86_64 -t package-${{ matrix.platform }}:amd64 -f Dockerfile.package-${{ matrix.platform }} .
+        docker build --build-arg ARCH=aarch64 -t package-${{ matrix.platform }}:arm64 -f Dockerfile.package-${{ matrix.platform }} .
     - name: Upload to Docker Hub
       if: ${{ github.ref == 'refs/heads/main' }}
       run: |
         set -eux
         NEW_TAG=$(git log -1 --format='%h')
-        docker tag package-${{ matrix.platform }} mlcaidev/package-${{ matrix.platform }}:$NEW_TAG
-        docker push mlcaidev/package-${{ matrix.platform }}:$NEW_TAG
+        # Create and push multi-arch manifest          
+        docker manifest create mlcaidev/package-${{ matrix.platform }}:$NEW_TAG \
+          mlcaidev/package-${{ matrix.platform }}:amd64 \
+          mlcaidev/package-${{ matrix.platform }}:arm64
+        docker manifest push mlcaidev/package-${{ matrix.platform }}:$NEW_TAG
+        
